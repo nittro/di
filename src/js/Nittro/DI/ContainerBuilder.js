@@ -1,15 +1,11 @@
 _context.invoke('Nittro.DI', function(Container, ContainerMixin, BuilderExtension, undefined) {
 
-    var ContainerBuilder = _context.extend(function(config) {
+    var ContainerBuilder = _context.extend(Container, function(config) {
         config || (config = {});
 
-        this._ = {
-            extensions: config.extensions || {},
-            params: config.params || {},
-            services: {},
-            serviceDefs: config.services || {},
-            factories: config.factories || {}
-        };
+        ContainerBuilder.Super.call(this, config);
+        this._.extensions = config.extensions || {};
+        
     }, {
         addExtension: function(name, extension) {
             if (this._.extensions[name] !== undefined) {
