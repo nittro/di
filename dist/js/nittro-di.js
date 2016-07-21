@@ -1,8 +1,9 @@
 _context.invoke('Nittro.DI', function(undefined) {
 
-    var ServiceDefinition = _context.extend(function(factory, setup, run) {
+    var ServiceDefinition = _context.extend(function(factory, args, setup, run) {
         this._ = {
             factory: factory,
+            args: args || {},
             setup: setup || [],
             run: !!run
         };
@@ -11,8 +12,22 @@ _context.invoke('Nittro.DI', function(undefined) {
             return this._.factory;
         },
 
-        setFactory: function(factory) {
+        setFactory: function(factory, args) {
             this._.factory = factory;
+
+            if (args !== undefined) {
+                this._.args = args;
+            }
+
+            return this;
+        },
+
+        getArguments: function () {
+            return this._.args;
+        },
+
+        setArguments: function(args) {
+            this._.args = args;
             return this;
         },
 
@@ -57,7 +72,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
         }
     };
 
-    var Container = {
+    var ContainerMixin = {
         addService: function (name, service) {
             prepare(this);
 
@@ -103,6 +118,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
                 this._.serviceDefs[name] = new ServiceDefinition(
                     this._.serviceDefs[name].replace(/!$/, ''),
                     null,
+                    null,
                     !!this._.serviceDefs[name].match(/!$/)
                 );
             } else if (typeof this._.serviceDefs[name] === 'function') {
@@ -112,6 +128,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
             } else if (!(this._.serviceDefs[name] instanceof ServiceDefinition)) {
                 this._.serviceDefs[name] = new ServiceDefinition(
                     this._.serviceDefs[name].factory,
+                    this._.serviceDefs[name].args,
                     this._.serviceDefs[name].setup,
                     this._.serviceDefs[name].run
                 );
@@ -187,7 +204,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
                 setup;
 
             if (typeof factory === 'function') {
-                service = this.invoke(factory);
+                service = this.invoke(factory, def.getArguments());
 
                 if (!service) {
                     throw new Error('Factory failed to create service "' + name + '"');
@@ -195,7 +212,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
                 }
             } else {
                 factory = this._toEntity(factory);
-                service = this._expandEntity(factory);
+                service = this._expandEntity(factory, null, def.getArguments());
 
                 if (service === factory) {
                     throw new Error('Invalid factory for service "' + name + '"');
@@ -347,7 +364,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
         }
     };
 
-    _context.register(Container, 'Container');
+    _context.register(ContainerMixin, 'ContainerMixin');
 
 }, {
     ReflectionClass: 'Utils.ReflectionClass',
@@ -359,7 +376,7 @@ _context.invoke('Nittro.DI', function(Nittro, ReflectionClass, ReflectionFunctio
     NeonEntity: 'Nittro.Neon.NeonEntity'
 });
 ;
-_context.invoke('Nittro.DI', function(Container, Arrays, HashMap, ReflectionClass, NeonEntity, undefined) {
+_context.invoke('Nittro.DI', function(ContainerMixin, Arrays, HashMap, ReflectionClass, NeonEntity, undefined) {
 
     function traverse(cursor, path, create) {
         if (typeof path === 'string') {
@@ -395,7 +412,7 @@ _context.invoke('Nittro.DI', function(Container, Arrays, HashMap, ReflectionClas
 
     }
 
-    var Context = _context.extend(function(config) {
+    var Container = _context.extend(function(config) {
         config || (config = {});
 
         this._ = {
@@ -503,15 +520,130 @@ _context.invoke('Nittro.DI', function(Container, Arrays, HashMap, ReflectionClas
         }
     });
 
-    _context.mixin(Context, Container, {
+    _context.mixin(Container, ContainerMixin, {
         _expandArg: '__expandArg'
     });
 
-    _context.register(Context, 'Context');
+    _context.register(Container, 'Container');
 
 }, {
     Arrays: 'Utils.Arrays',
     HashMap: 'Utils.HashMap',
     ReflectionClass: 'Utils.ReflectionClass',
     NeonEntity: 'Nittro.Neon.NeonEntity'
+});
+;
+_context.invoke('Nittro.DI', function (Arrays) {
+
+    var BuilderExtension = _context.extend(function(containerBuilder, config) {
+        this._ = {
+            containerBuilder: containerBuilder,
+            config: config
+        };
+    }, {
+        load: function() {
+
+        },
+
+        setup: function () {
+
+        },
+
+        _getConfig: function (defaults) {
+            if (defaults) {
+                this._.config = Arrays.mergeTree({}, defaults, this._.config);
+            }
+
+            return this._.config;
+
+        },
+
+        _getContainerBuilder: function () {
+            return this._.containerBuilder;
+        }
+    });
+
+    _context.register(BuilderExtension, 'BuilderExtension');
+
+}, {
+    Arrays: 'Utils.Arrays'
+});
+;
+_context.invoke('Nittro.DI', function(Container, ContainerMixin, BuilderExtension, undefined) {
+
+    var ContainerBuilder = _context.extend(function(config) {
+        config || (config = {});
+
+        this._ = {
+            extensions: config.extensions || {},
+            params: config.params || {},
+            services: {},
+            serviceDefs: config.services || {},
+            factories: config.factories || {}
+        };
+    }, {
+        addExtension: function(name, extension) {
+            if (this._.extensions[name] !== undefined) {
+                throw new Error('Container builder already has an extension called "' + name + '"');
+            }
+
+            this._.extensions[name] = extension;
+
+            return this;
+        },
+
+        createContainer: function() {
+            this._prepareExtensions();
+            this._loadExtensions();
+            this._setupExtensions();
+
+            return new Container({
+                params: this._.params,
+                services: this._.serviceDefs,
+                factories: this._.factories
+            });
+        },
+
+        _prepareExtensions: function () {
+            var name, extension;
+
+            for (name in this._.extensions) {
+                extension = this._.extensions[name];
+
+                if (typeof extension === 'function') {
+                    extension = this.invoke(extension, {containerBuilder: this, config: this._.params[name] || {}});
+
+                } else if (typeof extension === 'string') {
+                    extension = this._expandEntity(this._toEntity(extension), null, {containerBuilder: this, config: this._.params[name] || {}});
+
+                }
+
+                if (!(extension instanceof BuilderExtension)) {
+                    throw new Error('Extension "' + name + '" is not an instance of Nittro.DI.BuilderExtension');
+
+                }
+
+                this._.extensions[name] = extension;
+
+            }
+        },
+
+        _loadExtensions: function () {
+            for (var name in this._.extensions) {
+                this._.extensions[name].load();
+
+            }
+        },
+
+        _setupExtensions: function () {
+            for (var name in this._.extensions) {
+                this._.extensions[name].setup();
+
+            }
+        }
+    });
+
+    _context.mixin(ContainerBuilder, ContainerMixin);
+    _context.register(ContainerBuilder, 'ContainerBuilder');
+
 });
