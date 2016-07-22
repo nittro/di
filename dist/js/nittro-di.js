@@ -569,14 +569,14 @@ _context.invoke('Nittro.DI', function (Arrays) {
     Arrays: 'Utils.Arrays'
 });
 ;
-_context.invoke('Nittro.DI', function(Container, ContainerMixin, BuilderExtension, undefined) {
+_context.invoke('Nittro.DI', function(Container, BuilderExtension, undefined) {
 
     var ContainerBuilder = _context.extend(Container, function(config) {
         config || (config = {});
 
         ContainerBuilder.Super.call(this, config);
         this._.extensions = config.extensions || {};
-        
+
     }, {
         addExtension: function(name, extension) {
             if (this._.extensions[name] !== undefined) {
@@ -639,7 +639,6 @@ _context.invoke('Nittro.DI', function(Container, ContainerMixin, BuilderExtensio
         }
     });
 
-    _context.mixin(ContainerBuilder, ContainerMixin);
     _context.register(ContainerBuilder, 'ContainerBuilder');
 
 });
