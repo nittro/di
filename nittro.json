@@ -1,11 +1,11 @@
 {
     "files": {
         "js": [
-            "src/js/Nittro/DI/ServiceDefinition.js",
-            "src/js/Nittro/DI/ContainerMixin.js",
-            "src/js/Nittro/DI/Container.js",
-            "src/js/Nittro/DI/BuilderExtension.js",
-            "src/js/Nittro/DI/ContainerBuilder.js"
+            "src/ServiceDefinition.js",
+            "src/ContainerMixin.js",
+            "src/Container.js",
+            "src/BuilderExtension.js",
+            "src/ContainerBuilder.js"
         ]
     },
     "compat": {
