@@ -10,5 +10,9 @@
         "url": "https://github.com/nittro/di/issues",
         "email": "nittro@nittro.org"
     },
+    "dependencies": {
+        "nittro-core": "master",
+        "nittro-neon": "master"
+    },
     "devDependencies": {}
 }
