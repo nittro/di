@@ -13,8 +13,8 @@
         "email": "nittro@nittro.org"
     },
     "dependencies": {
-        "nittro-core": "^2.0.0-rc.4",
-        "nittro-neon": "^2.0.0-rc.2"
+        "nittro-core": "^2.0.0",
+        "nittro-neon": "^2.0.0"
     },
     "devDependencies": {
         "gulp": "^3.9.1",
